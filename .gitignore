@@ -1,0 +1,5 @@
+latest_prices.json
+*.pyc
+__pycache__/
+.env
+*.log

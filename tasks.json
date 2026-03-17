@@ -1,0 +1,154 @@
+{
+  "companies": [
+    {
+      "id": "mvc",
+      "name": "MVC",
+      "emoji": "🏢",
+      "color": "#048A81",
+      "agents": [
+        {
+          "id": "mvc-price",
+          "name": "Price Checker",
+          "emoji": "📈",
+          "description": "Monitors ICE futures and calculates farmer prices",
+          "status": "active",
+          "tasks": [
+            {
+              "id": "mvc-t1",
+              "name": "Morning Price Check",
+              "schedule": "Daily 8:03 AM",
+              "commodity": "Cocoa + Coffee",
+              "status": "active",
+              "last_run": "2026-03-16 08:03",
+              "command": "python3 ~/.noeai/automations/commodity_price_check.py"
+            },
+            {
+              "id": "mvc-t2",
+              "name": "Midday Price Check",
+              "schedule": "Daily 1:03 PM",
+              "commodity": "Cocoa + Coffee",
+              "status": "active",
+              "last_run": "2026-03-16 13:03",
+              "command": "python3 ~/.noeai/automations/commodity_price_check.py"
+            },
+            {
+              "id": "mvc-t3",
+              "name": "End of Day Price Check",
+              "schedule": "Daily 6:03 PM",
+              "commodity": "Cocoa + Coffee",
+              "status": "active",
+              "last_run": "2026-03-16 18:27",
+              "command": "python3 ~/.noeai/automations/commodity_price_check.py"
+            }
+          ]
+        },
+        {
+          "id": "mvc-outreach",
+          "name": "Outreach Agent",
+          "emoji": "📧",
+          "description": "Drafts cold emails and follow-ups for MVC buyers",
+          "status": "active",
+          "tasks": [
+            {
+              "id": "mvc-t4",
+              "name": "Draft Cold Outreach Email",
+              "schedule": "On demand",
+              "commodity": "All",
+              "status": "active",
+              "last_run": "2026-03-16 14:22",
+              "command": "/my-outreach"
+            }
+          ]
+        },
+        {
+          "id": "mvc-cargill",
+          "name": "Cargill Hedge Tracker",
+          "emoji": "🔒",
+          "description": "Tracks contracts and hedge positions with Cargill",
+          "status": "active",
+          "tasks": [
+            {
+              "id": "mvc-t5",
+              "name": "Rebuild Hedge Tracker",
+              "schedule": "On demand",
+              "commodity": "Cocoa + Coffee",
+              "status": "active",
+              "last_run": "2026-03-16 15:10",
+              "command": "python3 ~/.noeai/automations/build_cargill_tracker.py"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "egd",
+      "name": "EGD",
+      "emoji": "🌍",
+      "color": "#7C3AED",
+      "agents": [
+        {
+          "id": "egd-research",
+          "name": "Research Team",
+          "emoji": "🔍",
+          "description": "Market research and buyer intelligence for EGD",
+          "status": "idle",
+          "tasks": [
+            {
+              "id": "egd-t1",
+              "name": "European Market Brief",
+              "schedule": "On demand",
+              "commodity": "Cocoa",
+              "status": "completed",
+              "last_run": "2026-03-16 17:45",
+              "command": "Agent task — see agent-1-market-brief.md"
+            },
+            {
+              "id": "egd-t2",
+              "name": "Buyer Qualification Checklist",
+              "schedule": "On demand",
+              "commodity": "All",
+              "status": "completed",
+              "last_run": "2026-03-16 17:45",
+              "command": "Agent task — see agent-3-buyer-checklist.md"
+            }
+          ]
+        },
+        {
+          "id": "egd-outreach",
+          "name": "Outreach Agent",
+          "emoji": "📧",
+          "description": "Drafts cold emails and follow-ups for EGD buyers",
+          "status": "active",
+          "tasks": []
+        },
+        {
+          "id": "egd-orders",
+          "name": "Order Design Bot",
+          "emoji": "🎨",
+          "description": "Watches Trello for new orders and auto-generates design files",
+          "status": "active",
+          "tasks": [
+            {
+              "id": "egd-order-t1",
+              "name": "Watch Trello → Generate Design File",
+              "schedule": "Every 60s (loop)",
+              "commodity": "All",
+              "status": "active",
+              "last_run": "—",
+              "command": "python3 ~/.noeai/automations/trello_orders/order_watcher.py --loop"
+            },
+            {
+              "id": "egd-order-t2",
+              "name": "One-time Order Check",
+              "schedule": "On demand",
+              "commodity": "All",
+              "status": "active",
+              "last_run": "—",
+              "command": "python3 ~/.noeai/automations/trello_orders/order_watcher.py"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
