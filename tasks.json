@@ -24,8 +24,8 @@
             },
             {
               "id": "mvc-t2",
-              "name": "Midday Price Check",
-              "schedule": "Daily 1:03 PM",
+              "name": "Mid-Session Price Check",
+              "schedule": "Daily 10:30 AM",
               "commodity": "Cocoa + Coffee",
               "status": "active",
               "last_run": "2026-03-16 13:03",
@@ -33,8 +33,8 @@
             },
             {
               "id": "mvc-t3",
-              "name": "End of Day Price Check",
-              "schedule": "Daily 6:03 PM",
+              "name": "Market Close Price Check",
+              "schedule": "Daily 1:30 PM",
               "commodity": "Cocoa + Coffee",
               "status": "active",
               "last_run": "2026-03-16 18:27",
