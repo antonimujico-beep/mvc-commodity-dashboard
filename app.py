@@ -73,12 +73,12 @@ def save(data):
         json.dump(data, f, indent=2)
 
 @app.route("/")
-def index():
-    return send_from_directory(os.path.dirname(__file__), "index.html")
-
-@app.route("/commodity")
 def commodity():
     return send_file(COMMODITY_HTML)
+
+@app.route("/agents")
+def index():
+    return send_from_directory(os.path.dirname(__file__), "index.html")
 
 @app.route("/api/prices")
 def get_prices():
