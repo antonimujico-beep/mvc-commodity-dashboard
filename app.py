@@ -298,6 +298,83 @@ def parse_task():
     return jsonify({"task": task, "agent_name": agent_name}), 201
 
 
+EGD_CRM_HTML = os.path.join(os.path.dirname(__file__), "egd_crm.html")
+LEADS_FILE   = os.path.join(os.path.dirname(__file__), "..", "automations", "egd", "..") # resolved below
+LEADS_FILE   = os.path.expanduser("~/.noeai/dashboard/egd_leads.json")
+
+def load_leads():
+    if os.path.exists(LEADS_FILE):
+        with open(LEADS_FILE) as f:
+            return json.load(f)
+    return []
+
+def save_leads_data(leads):
+    with open(LEADS_FILE, "w") as f:
+        json.dump(leads, f, indent=2)
+
+@app.route("/egd-crm")
+def egd_crm():
+    return send_file(EGD_CRM_HTML)
+
+@app.route("/api/leads", methods=["GET"])
+def get_leads():
+    return jsonify(load_leads())
+
+@app.route("/api/leads", methods=["POST"])
+def add_lead():
+    leads = load_leads()
+    body  = request.json
+    lead  = {
+        "id":           f"egd-{uuid.uuid4().hex[:8]}",
+        "business":     body.get("business",""),
+        "type":         body.get("type",""),
+        "phone":        body.get("phone",""),
+        "email":        body.get("email",""),
+        "address":      body.get("address",""),
+        "website":      body.get("website",""),
+        "contact":      body.get("contact",""),
+        "products":     body.get("products",[]),
+        "status":       body.get("status","new"),
+        "assigned_to":  body.get("assigned_to",""),
+        "notes":        body.get("notes",""),
+        "wa_message":   "",
+        "email_subject":"",
+        "email_message":"",
+        "created_at":   datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "contacted_at": "",
+    }
+    leads.append(lead)
+    save_leads_data(leads)
+    return jsonify(lead), 201
+
+@app.route("/api/leads/<int:idx>", methods=["PUT"])
+def update_lead(idx):
+    leads = load_leads()
+    if idx >= len(leads):
+        return jsonify({"error": "Not found"}), 404
+    body = request.json
+    for k, v in body.items():
+        leads[idx][k] = v
+    save_leads_data(leads)
+    return jsonify(leads[idx])
+
+@app.route("/api/leads/<int:idx>", methods=["DELETE"])
+def delete_lead(idx):
+    leads = load_leads()
+    if idx >= len(leads):
+        return jsonify({"error": "Not found"}), 404
+    leads.pop(idx)
+    save_leads_data(leads)
+    return jsonify({"ok": True})
+
+@app.route("/api/find-leads", methods=["POST"])
+def find_leads_api():
+    import subprocess
+    script = os.path.expanduser("~/.noeai/automations/egd/lead_finder.py")
+    subprocess.Popen(["python3", script, "restaurants"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return jsonify({"ok": True, "message": "Lead finder running in background", "added": "check back in 30s"})
+
+
 if __name__ == "__main__":
     print("\n" + "="*55)
     print("  🤖 ANTONI'S AGENT DASHBOARD v2")
