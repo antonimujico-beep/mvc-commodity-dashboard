@@ -299,8 +299,7 @@ def parse_task():
 
 
 EGD_CRM_HTML = os.path.join(os.path.dirname(__file__), "egd_crm.html")
-LEADS_FILE   = os.path.join(os.path.dirname(__file__), "..", "automations", "egd", "..") # resolved below
-LEADS_FILE   = os.path.expanduser("~/.noeai/dashboard/egd_leads.json")
+LEADS_FILE   = os.path.join(os.path.dirname(__file__), "egd_leads.json")
 
 def load_leads():
     if os.path.exists(LEADS_FILE):
