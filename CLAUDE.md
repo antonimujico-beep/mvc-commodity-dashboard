@@ -56,6 +56,13 @@ Single-file backend serving all HTML pages and APIs:
 - `latest_prices.json` — last price check output; written by both `commodity_price_check.py` and `app.py`
 - `tasks.json` — agent/task structure for the dashboard UI
 
+### Contracts / Hedge Tracker — PostgreSQL
+- **Contracts and hedges** are persisted in a PostgreSQL database (Render free tier) via SQLAlchemy.
+- On startup, `_init_db()` creates the `contracts_store` table if it doesn't exist (single row, key=`contracts`, value=JSON array).
+- Locally (no `DATABASE_URL` env var), SQLAlchemy falls back to `contracts.db` (SQLite).
+- API endpoints: `GET/POST /api/contracts`, `DELETE /api/contracts/<ci>`, `POST /api/contracts/<ci>/hedges`, `DELETE /api/contracts/<ci>/hedges/<hi>`.
+- The HTML stores contracts in `_contracts` (in-memory JS array), fetches from API on load, and calls API on every mutation — no `localStorage` involved.
+
 ### EGD Sales Pipeline (`~/.noeai/automations/egd/`)
 Three-stage pipeline: **find → message → outreach**
 1. `lead_finder.py` — Google Places API (New: POST to `places.googleapis.com/v1/places:searchText`). API key and categories in `config.py`. Deduplicates by `place_id`.
@@ -77,5 +84,5 @@ Three-stage pipeline: **find → message → outreach**
 ## Key Constraints
 - **Twilio sandbox**: messages only reach numbers that have activated the sandbox; 50 msg/day limit on trial accounts
 - **Google Places API key** in `config.py` is unrestricted — should be locked to Places API only in Google Cloud Console
-- **Hedge tracker** in `commodity.html` uses `localStorage` only — data does not persist to server
+- **Render PostgreSQL free tier** expires after 90 days — upgrade or migrate before then to avoid data loss
 - **`openpyxl`** is in `requirements.txt` but not currently used
