@@ -12,11 +12,44 @@ try:
     import urllib.request
 except ImportError:
     pass
+from sqlalchemy import create_engine, text
 
 app = Flask(__name__, static_folder=".")
-TASKS_FILE   = os.path.join(os.path.dirname(__file__), "tasks.json")
-PRICES_FILE  = os.path.join(os.path.dirname(__file__), "latest_prices.json")
+TASKS_FILE     = os.path.join(os.path.dirname(__file__), "tasks.json")
+PRICES_FILE    = os.path.join(os.path.dirname(__file__), "latest_prices.json")
 COMMODITY_HTML = os.path.join(os.path.dirname(__file__), "commodity.html")
+
+# ── Database setup ─────────────────────────────────────────────────────────────
+_db_url = os.environ.get("DATABASE_URL", f"sqlite:///{os.path.join(os.path.dirname(__file__), 'contracts.db')}")
+if _db_url.startswith("postgres://"):          # Render uses postgres://, SQLAlchemy needs postgresql://
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+
+_engine = create_engine(_db_url)
+
+def _init_db():
+    with _engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS contracts_store (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """))
+        conn.commit()
+
+_init_db()
+
+def load_contracts():
+    with _engine.connect() as conn:
+        row = conn.execute(text("SELECT value FROM contracts_store WHERE key = 'contracts'")).fetchone()
+    return json.loads(row[0]) if row else []
+
+def save_contracts_data(contracts):
+    with _engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO contracts_store (key, value) VALUES ('contracts', :v)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+        """), {"v": json.dumps(contracts)})
+        conn.commit()
 
 # ── Price cache (avoid hammering Yahoo Finance) ──────────────────────────────
 _price_cache = {"data": None, "ts": 0}
@@ -296,6 +329,65 @@ def parse_task():
                     agent_name = ag["name"]
     save(data)
     return jsonify({"task": task, "agent_name": agent_name}), 201
+
+
+# ── Contracts / Hedge Tracker ─────────────────────────────────────────────────
+
+@app.route("/api/contracts", methods=["GET"])
+def get_contracts():
+    return jsonify(load_contracts())
+
+@app.route("/api/contracts", methods=["POST"])
+def add_contract():
+    contracts = load_contracts()
+    body = request.json
+    contract = {
+        "id":           body.get("id", ""),
+        "commodity":    body.get("commodity", "Cocoa"),
+        "delivery":     body.get("delivery", ""),
+        "qty":          body.get("qty", 0),
+        "differential": body.get("differential", 0),
+        "buyer":        body.get("buyer", ""),
+        "hedges":       [],
+        "created_at":   datetime.now().strftime("%Y-%m-%d %H:%M"),
+    }
+    contracts.append(contract)
+    save_contracts_data(contracts)
+    return jsonify({"ok": True, "index": len(contracts) - 1, "contract": contract}), 201
+
+@app.route("/api/contracts/<int:ci>", methods=["DELETE"])
+def delete_contract(ci):
+    contracts = load_contracts()
+    if ci >= len(contracts):
+        return jsonify({"error": "Not found"}), 404
+    contracts.pop(ci)
+    save_contracts_data(contracts)
+    return jsonify({"ok": True})
+
+@app.route("/api/contracts/<int:ci>/hedges", methods=["POST"])
+def add_hedge(ci):
+    contracts = load_contracts()
+    if ci >= len(contracts):
+        return jsonify({"error": "Not found"}), 404
+    body = request.json
+    hedge = {
+        "date":  body.get("date", ""),
+        "lots":  body.get("lots", 0),
+        "price": body.get("price", 0),
+        "notes": body.get("notes", ""),
+    }
+    contracts[ci].setdefault("hedges", []).append(hedge)
+    save_contracts_data(contracts)
+    return jsonify({"ok": True}), 201
+
+@app.route("/api/contracts/<int:ci>/hedges/<int:hi>", methods=["DELETE"])
+def delete_hedge(ci, hi):
+    contracts = load_contracts()
+    if ci >= len(contracts) or hi >= len(contracts[ci].get("hedges", [])):
+        return jsonify({"error": "Not found"}), 404
+    contracts[ci]["hedges"].pop(hi)
+    save_contracts_data(contracts)
+    return jsonify({"ok": True})
 
 
 EGD_CRM_HTML = os.path.join(os.path.dirname(__file__), "egd_crm.html")

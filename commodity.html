@@ -796,15 +796,16 @@ calculate();
 // CARGILL HEDGE TRACKER
 // ═══════════════════════════════════════════
 
-const STORAGE_KEY = 'cargill_contracts';
+// In-memory cache — populated on load and kept in sync via API
+let _contracts = [];
 
-function loadContracts() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch(e) { return []; }
-}
-
-function saveContracts(contracts) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(contracts));
+async function fetchContracts() {
+  try {
+    const res = await fetch('/api/contracts');
+    _contracts = await res.json();
+  } catch(e) {
+    _contracts = [];
+  }
 }
 
 function contractLotsHedged(c) {
@@ -841,7 +842,7 @@ function commodityEmoji(c) {
 }
 
 function renderHedgeTracker() {
-  const contracts = loadContracts();
+  const contracts = _contracts;
   const empty = document.getElementById('hedge-empty');
   const summaryEl = document.getElementById('hedge-summary');
   const contractsEl = document.getElementById('hedge-contracts');
@@ -1017,7 +1018,7 @@ function openAddContract() {
   document.getElementById('modal-contract').style.display = 'flex';
 }
 
-function saveContract() {
+async function saveContract() {
   const id       = document.getElementById('mc-id').value.trim();
   const commodity= document.getElementById('mc-commodity').value;
   const delivery = document.getElementById('mc-delivery').value.trim();
@@ -1027,25 +1028,26 @@ function saveContract() {
 
   if (!id || !delivery || !qty) { alert('Please fill in Contract ID, Delivery Period, and Qty.'); return; }
 
-  const contracts = loadContracts();
-  contracts.push({ id, commodity, delivery, qty, differential: diff, buyer, hedges: [] });
-  saveContracts(contracts);
+  await fetch('/api/contracts', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ id, commodity, delivery, qty, differential: diff, buyer })
+  });
+  await fetchContracts();
   closeModal('modal-contract');
   renderHedgeTracker();
 }
 
-function deleteContract(ci) {
+async function deleteContract(ci) {
   if (!confirm('Delete this contract and all its hedges?')) return;
-  const contracts = loadContracts();
-  contracts.splice(ci, 1);
-  saveContracts(contracts);
+  await fetch(`/api/contracts/${ci}`, { method: 'DELETE' });
+  await fetchContracts();
   renderHedgeTracker();
 }
 
 // ── Modal: Add Hedge ──
 function openAddHedge(ci) {
-  const contracts = loadContracts();
-  const c = contracts[ci];
+  const c = _contracts[ci];
   const lots = Math.floor((c.qty || 0) / 10);
   const hedged = contractLotsHedged(c);
   const remain = lots - hedged;
@@ -1059,7 +1061,7 @@ function openAddHedge(ci) {
   document.getElementById('modal-hedge').style.display = 'flex';
 }
 
-function saveHedge() {
+async function saveHedge() {
   const ci    = parseInt(document.getElementById('mh-contract-id').value);
   const lots  = parseFloat(document.getElementById('mh-lots').value) || 0;
   const price = parseFloat(document.getElementById('mh-price').value) || 0;
@@ -1068,19 +1070,20 @@ function saveHedge() {
 
   if (!lots || !price) { alert('Please enter lots and futures price.'); return; }
 
-  const contracts = loadContracts();
-  if (!contracts[ci].hedges) contracts[ci].hedges = [];
-  contracts[ci].hedges.push({ date, lots, price, notes });
-  saveContracts(contracts);
+  await fetch(`/api/contracts/${ci}/hedges`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ date, lots, price, notes })
+  });
+  await fetchContracts();
   closeModal('modal-hedge');
   renderHedgeTracker();
 }
 
-function deleteHedge(ci, hi) {
+async function deleteHedge(ci, hi) {
   if (!confirm('Delete this hedge entry?')) return;
-  const contracts = loadContracts();
-  contracts[ci].hedges.splice(hi, 1);
-  saveContracts(contracts);
+  await fetch(`/api/contracts/${ci}/hedges/${hi}`, { method: 'DELETE' });
+  await fetchContracts();
   renderHedgeTracker();
 }
 
@@ -1096,7 +1099,8 @@ document.addEventListener('click', e => {
   });
 });
 
-renderHedgeTracker();
+// Load contracts from server on startup
+fetchContracts().then(() => renderHedgeTracker());
 
 // ── Live price refresh ──────────────────────────────────────
 async function fetchLivePrices() {
